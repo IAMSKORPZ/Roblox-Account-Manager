@@ -326,7 +326,7 @@ namespace RBX_Alt_Manager.Classes
             else
             {
                 await page.WaitForNavigationAsync();
-                AccountManager.AddAccount(SecurityToken.Value, Password, await page.EvaluateFunctionAsync<string>("() => { return fetch('/my/account/json').then(x=>x.text()); }"));
+                AccountManager.AddAccount(SecurityToken.Value, Password, await page.EvaluateFunctionAsync<string>("() => fetch('https://users.roblox.com/v1/users/authenticated', { credentials: 'include' }).then(x => x.text())"));
             }
 
             Password = null;

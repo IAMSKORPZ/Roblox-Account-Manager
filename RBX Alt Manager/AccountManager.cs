@@ -80,7 +80,6 @@ namespace RBX_Alt_Manager
         public static IniSection Watcher;
         public static IniSection Prompts;
 
-        private static Mutex rbxMultiMutex;
         private readonly static object saveLock = new object();
         private readonly static object rgSaveLock = new object();
         public event EventHandler<GameArgs> RecentGameAdded;
@@ -1254,23 +1253,7 @@ namespace RBX_Alt_Manager
         public bool UpdateMultiRoblox()
         {
             bool Enabled = General.Get<bool>("EnableMultiRbx");
-
-            if (Enabled && rbxMultiMutex == null)
-                try
-                {
-                    rbxMultiMutex = new Mutex(true, "ROBLOX_singletonMutex");
-
-                    if (!rbxMultiMutex.WaitOne(TimeSpan.Zero, true))
-                        return false;
-                }
-                catch { return false; }
-            else if (!Enabled && rbxMultiMutex != null)
-            {
-                rbxMultiMutex.Close();
-                rbxMultiMutex = null;
-            }
-
-            return true;
+            return RobloxMultiInstanceManager.SetEnabled(Enabled, out _);
         }
 
         private void Remove_Click(object sender, EventArgs e)
@@ -1459,7 +1442,7 @@ namespace RBX_Alt_Manager
             RefreshView();
         }
 
-        private void JoinServer_Click(object sender, EventArgs e)
+        private async void JoinServer_Click(object sender, EventArgs e)
         {
             Match IDMatch = Regex.Match(PlaceID.Text, @"\/games\/(\d+)[\/|\?]?"); // idiotproofing
 
@@ -1483,23 +1466,16 @@ namespace RBX_Alt_Manager
             CancelLaunching();
 
             bool LaunchMultiple = AccountsView.SelectedObjects.Count > 1;
-
-            new Thread(async () => // finally fixing an ancient bug in a dumb way, p.s. i do not condone this.
+            if (LaunchMultiple)
             {
-                if (LaunchMultiple)
-                {
-                    LauncherToken = new CancellationTokenSource();
-
-                    await LaunchAccounts(SelectedAccounts, PlaceId, VIPServer ? JobID.Text.Substring(4) : JobID.Text, false, VIPServer);
-                }
-                else if (SelectedAccount != null)
-                {
-                    string res = await SelectedAccount.JoinServer(PlaceId, VIPServer ? JobID.Text.Substring(4) : JobID.Text, false, VIPServer);
-
-                    if (!res.Contains("Success"))
-                        MessageBox.Show(res);
-                }
-            }).Start();
+                LauncherToken = new CancellationTokenSource();
+                await LaunchAccounts(SelectedAccounts, PlaceId, VIPServer ? JobID.Text.Substring(4) : JobID.Text, false, VIPServer);
+            }
+            else if (SelectedAccount != null)
+            {
+                string res = await SelectedAccount.JoinServer(PlaceId, VIPServer ? JobID.Text.Substring(4) : JobID.Text, false, VIPServer);
+                if (!res.Contains("Success")) MessageBox.Show(res);
+            }
         }
 
         private async void Follow_Click(object sender, EventArgs e)
