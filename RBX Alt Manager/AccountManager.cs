@@ -624,8 +624,6 @@ namespace RBX_Alt_Manager
             prompt.Controls.Add(textBox);
             prompt.Controls.Add(confirmation);
             prompt.Controls.Add(textLabel);
-            if (!big) prompt.AcceptButton = confirmation;
-
             prompt.Rescale();
 
             return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "/UC";
@@ -654,15 +652,16 @@ namespace RBX_Alt_Manager
             ThemeForm = new ThemeEditor();
             RGForm = new RecentGamesForm();
 
-            MainClient = new RestClient("https://www.roblox.com/");
-            AvatarClient = new RestClient("https://avatar.roblox.com/");
-            AuthClient = new RestClient("https://auth.roblox.com/");
-            EconClient = new RestClient("https://economy.roblox.com/");
-            AccountClient = new RestClient("https://accountsettings.roblox.com/");
+            string browserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            MainClient = new RestClient(new RestClientOptions("https://www.roblox.com/") { UserAgent = browserUserAgent });
+            AvatarClient = new RestClient(new RestClientOptions("https://avatar.roblox.com/") { UserAgent = browserUserAgent });
+            AuthClient = new RestClient(new RestClientOptions("https://auth.roblox.com/") { UserAgent = browserUserAgent });
+            EconClient = new RestClient(new RestClientOptions("https://economy.roblox.com/") { UserAgent = browserUserAgent });
+            AccountClient = new RestClient(new RestClientOptions("https://accountsettings.roblox.com/") { UserAgent = browserUserAgent });
             GameJoinClient = new RestClient(new RestClientOptions("https://gamejoin.roblox.com/") { UserAgent = "Roblox/WinInet" });
-            UsersClient = new RestClient("https://users.roblox.com");
-            FriendsClient = new RestClient("https://friends.roblox.com");
-            Web13Client = new RestClient("https://web.roblox.com/");
+            UsersClient = new RestClient(new RestClientOptions("https://users.roblox.com/") { UserAgent = browserUserAgent });
+            FriendsClient = new RestClient(new RestClientOptions("https://friends.roblox.com/") { UserAgent = browserUserAgent });
+            Web13Client = new RestClient(new RestClientOptions("https://web.roblox.com/") { UserAgent = browserUserAgent });
 
             if (File.Exists(SaveFilePath))
                 LoadAccounts();

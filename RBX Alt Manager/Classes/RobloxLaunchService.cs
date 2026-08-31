@@ -94,7 +94,7 @@ namespace RBX_Alt_Manager.Classes
             }
 
             long launchTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            return $"roblox-player:1+launchmode:play+gameinfo:{request.AuthenticationTicket}+launchtime:{launchTime}+placelauncherurl:{HttpUtility.UrlEncode(placeLauncherUrl)}+browsertrackerid:{request.BrowserTrackerId}+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp";
+            return $"roblox-player:1+launchmode:play+gameinfo:{request.AuthenticationTicket}+launchtime:{launchTime}+placelauncherurl:{placeLauncherUrl}+browsertrackerid:{request.BrowserTrackerId}+robloxLocale:en_us+gameLocale:en_us";
         }
 
         private static async Task<Process> WaitForNewPlayerProcessAsync(HashSet<int> existingProcessIds, TimeSpan timeout)

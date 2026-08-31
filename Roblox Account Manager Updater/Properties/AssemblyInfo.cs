@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("Roblox Account Manager Updater")]
@@ -13,5 +13,5 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 [assembly: Guid("e5f381ab-8c9e-4c7a-b4d2-f6742544e391")]
 
-[assembly: AssemblyVersion("3.9.0.0")]
-[assembly: AssemblyFileVersion("3.9.0.0")]
+[assembly: AssemblyVersion("3.9.1.0")]
+[assembly: AssemblyFileVersion("3.9.1.0")]

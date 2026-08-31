@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RBX_Alt_Manager.Classes;
 using RBX_Alt_Manager.Forms;
@@ -110,7 +110,15 @@ namespace RBX_Alt_Manager
             }
         }
 
-        public RestRequest MakeRequest(string url, Method method = Method.Get) => new RestRequest(url, method).AddCookie(".ROBLOSECURITY", SecurityToken, "/", ".roblox.com");
+        public RestRequest MakeRequest(string url, Method method = Method.Get)
+        {
+            var request = new RestRequest(url, method);
+            if (!string.IsNullOrWhiteSpace(SecurityToken))
+            {
+                request.AddHeader("Cookie", $".ROBLOSECURITY={SecurityToken}");
+            }
+            return request;
+        }
 
         private static Parameter FindHeader(RestResponse response, string name) =>
             response?.Headers?.FirstOrDefault(header => string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
@@ -143,33 +151,134 @@ namespace RBX_Alt_Manager
             return response;
         }
 
-        public async Task<string> GetAuthTicketAsync()
+        public async Task<AuthTicketResult> GetAuthTicketDetailedAsync()
         {
-            RestResponse response = await ExecuteAuthenticatedRequestAsync(AccountManager.AuthClient, () =>
-                MakeRequest("v1/authentication-ticket", Method.Post)
-                    .AddHeader("Referer", "https://www.roblox.com/")
-                    .AddHeader("RBXAuthenticationNegotiation", "1")).ConfigureAwait(false);
-
-            Parameter ticketHeader = FindHeader(response, "rbx-authentication-ticket");
-            string ticket = ticketHeader?.Value?.ToString();
-            if (!string.IsNullOrWhiteSpace(ticket))
+            if (string.IsNullOrWhiteSpace(SecurityToken))
             {
-                LastUse = DateTime.Now;
-                AccountManager.LastValidAccount = this;
-                Program.Logger.Info("[AUTH] Authentication ticket acquired");
-                return ticket;
+                return new AuthTicketResult
+                {
+                    Success = false,
+                    ErrorMessage = "Your Roblox session has expired. Please re-add or refresh this account.",
+                    StatusCode = HttpStatusCode.Unauthorized
+                };
             }
 
-            string safeBody = string.IsNullOrWhiteSpace(response.Content) ? "<empty>" : response.Content;
-            if (safeBody.Length > 1000) safeBody = safeBody.Substring(0, 1000) + "...";
-            Program.Logger.Error($"[ERROR] Authentication ticket header missing - HTTP {(int)response.StatusCode} {response.StatusCode}; body: {safeBody}");
-            return null;
+            try
+            {
+                var request = MakeRequest("v1/authentication-ticket/", Method.Post)
+                    .AddHeader("Origin", "https://www.roblox.com")
+                    .AddHeader("Referer", "https://www.roblox.com/games/606849621/Jailbreak")
+                    .AddHeader("RBXAuthenticationNegotiation", "1");
+
+                if (!string.IsNullOrWhiteSpace(CSRFToken) && DateTime.UtcNow - TokenSet < CsrfCacheDuration)
+                {
+                    request.AddHeader("X-CSRF-TOKEN", CSRFToken);
+                }
+
+                RestResponse response = await AccountManager.AuthClient.ExecuteAsync(request).ConfigureAwait(false);
+
+                bool hasCsrfHeader = response.Headers?.Any(h => h.Name.Equals("x-csrf-token", StringComparison.OrdinalIgnoreCase)) ?? false;
+                bool hasTicketHeader = response.Headers?.Any(h => h.Name.Equals("rbx-authentication-ticket", StringComparison.OrdinalIgnoreCase)) ?? false;
+                Program.Logger.Info($"[AUTH] Ticket request for {Username} - Status: {(int)response.StatusCode} {response.StatusCode} | CookieSupplied: true | CsrfSupplied: {request.Parameters.Any(p => p.Name == "X-CSRF-TOKEN")} | CsrfResponseHeader: {hasCsrfHeader} | TicketResponseHeader: {hasTicketHeader}");
+
+                if (response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    CacheCsrfToken(response);
+
+                    if (!string.IsNullOrWhiteSpace(CSRFToken))
+                    {
+                        var retryRequest = MakeRequest("v1/authentication-ticket/", Method.Post)
+                            .AddHeader("Origin", "https://www.roblox.com")
+                            .AddHeader("Referer", "https://www.roblox.com/games/606849621/Jailbreak")
+                            .AddHeader("RBXAuthenticationNegotiation", "1")
+                            .AddHeader("X-CSRF-TOKEN", CSRFToken);
+
+                        response = await AccountManager.AuthClient.ExecuteAsync(retryRequest).ConfigureAwait(false);
+
+                        bool retryTicketHeader = response.Headers?.Any(h => h.Name.Equals("rbx-authentication-ticket", StringComparison.OrdinalIgnoreCase)) ?? false;
+                        Program.Logger.Info($"[AUTH] Ticket retry with CSRF for {Username} - Status: {(int)response.StatusCode} {response.StatusCode} | TicketResponseHeader: {retryTicketHeader}");
+                    }
+                    else
+                    {
+                        return new AuthTicketResult
+                        {
+                            Success = false,
+                            ErrorMessage = "Failed to negotiate Roblox authentication (CSRF challenge). Please try again.",
+                            StatusCode = HttpStatusCode.Forbidden
+                        };
+                    }
+                }
+
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    Parameter ticketHeader = FindHeader(response, "rbx-authentication-ticket");
+                    string ticket = ticketHeader?.Value?.ToString();
+
+                    if (!string.IsNullOrWhiteSpace(ticket))
+                    {
+                        LastUse = DateTime.Now;
+                        AccountManager.LastValidAccount = this;
+                        AccountManager.SaveAccounts();
+                        Program.Logger.Info($"[AUTH] Authentication ticket acquired successfully for {Username}");
+                        return new AuthTicketResult
+                        {
+                            Success = true,
+                            Ticket = ticket,
+                            StatusCode = HttpStatusCode.OK
+                        };
+                    }
+                }
+
+                string errorMsg;
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.Unauthorized:
+                        errorMsg = "Your Roblox session has expired. Please re-add or refresh this account.";
+                        break;
+                    case (HttpStatusCode)429:
+                        errorMsg = "Roblox is temporarily rate limiting requests. Please wait and try again.";
+                        break;
+                    case HttpStatusCode.Forbidden:
+                        errorMsg = "Roblox rejected the authentication challenge. Please re-add or refresh this account.";
+                        break;
+                    case 0:
+                        errorMsg = "Could not contact Roblox authentication services. Please check your network connection.";
+                        break;
+                    default:
+                        errorMsg = $"Roblox rejected the authentication ticket request (HTTP {(int)response.StatusCode} {response.StatusCode}).";
+                        break;
+                }
+
+                return new AuthTicketResult
+                {
+                    Success = false,
+                    ErrorMessage = errorMsg,
+                    StatusCode = response.StatusCode
+                };
+            }
+            catch (Exception ex)
+            {
+                Program.Logger.Error($"[AUTH] Authentication ticket exception: {ex.Message}");
+                return new AuthTicketResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Could not contact Roblox authentication services: {ex.Message}",
+                    StatusCode = 0
+                };
+            }
+        }
+
+        public async Task<string> GetAuthTicketAsync()
+        {
+            var result = await GetAuthTicketDetailedAsync().ConfigureAwait(false);
+            return result.Success ? result.Ticket : null;
         }
 
         public bool GetAuthTicket(out string Ticket)
         {
-            Ticket = GetAuthTicketAsync().GetAwaiter().GetResult();
-            return !string.IsNullOrWhiteSpace(Ticket);
+            var result = GetAuthTicketDetailedAsync().GetAwaiter().GetResult();
+            Ticket = result.Ticket ?? string.Empty;
+            return result.Success;
         }
 
         public bool GetCSRFToken(out string Result)
@@ -180,18 +289,34 @@ namespace RBX_Alt_Manager
                 return true;
             }
 
-            RestResponse response = AccountManager.AuthClient.Execute(MakeRequest("v2/logout", Method.Post).AddHeader("Referer", "https://www.roblox.com/"));
+            var request = MakeRequest("v1/authentication-ticket/", Method.Post)
+                .AddHeader("Origin", "https://www.roblox.com")
+                .AddHeader("Referer", "https://www.roblox.com/games/606849621/Jailbreak")
+                .AddHeader("RBXAuthenticationNegotiation", "1");
+
+            RestResponse response = AccountManager.AuthClient.Execute(request);
             CacheCsrfToken(response);
+
             if (!string.IsNullOrWhiteSpace(CSRFToken))
             {
-                LastUse = DateTime.Now;
-                AccountManager.LastValidAccount = this;
-                AccountManager.SaveAccounts();
+                TokenSet = DateTime.UtcNow;
                 Result = CSRFToken;
                 return true;
             }
 
-            Result = $"[{(int)response.StatusCode} {response.StatusCode}] CSRF acquisition failed";
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                Result = "Your Roblox session has expired. Please re-add or refresh this account.";
+            }
+            else if ((int)response.StatusCode == 429)
+            {
+                Result = "Roblox is temporarily rate limiting requests. Please wait and try again.";
+            }
+            else
+            {
+                Result = $"Failed to negotiate Roblox authentication (HTTP {(int)response.StatusCode} {response.StatusCode})";
+            }
+
             Program.Logger.Error($"[ERROR] CSRF acquisition failed - HTTP {(int)response.StatusCode} {response.StatusCode}");
             return false;
         }
@@ -535,6 +660,7 @@ namespace RBX_Alt_Manager
             {
                 Code = match.Groups["code"]?.Value ?? string.Empty;
 
+
                 return true;
             }
 
@@ -552,80 +678,86 @@ namespace RBX_Alt_Manager
 
             try { ClientSettingsPatcher.PatchSettings(); } catch (Exception Ex) { Program.Logger.Error($"Failed to patch ClientAppSettings: {Ex}"); }
 
-            if (!GetCSRFToken(out string Token)) return $"ERROR: Account Session Expired, re-add the account or try again. (Invalid X-CSRF-Token)\n{Token}";
-
             if (AccountManager.ShuffleJobID && string.IsNullOrEmpty(JobID))
                 JobID = await Utilities.GetRandomJobId(PlaceID);
 
-            string Ticket = await GetAuthTicketAsync().ConfigureAwait(false);
-            if (!string.IsNullOrWhiteSpace(Ticket))
+            var ticketResult = await GetAuthTicketDetailedAsync().ConfigureAwait(false);
+            if (!ticketResult.Success || string.IsNullOrWhiteSpace(ticketResult.Ticket))
             {
-                if (AccountManager.General.Get<bool>("AutoCloseLastProcess"))
-                {
-                    try
-                    {
-                        foreach(Process proc in Process.GetProcessesByName("RobloxPlayerBeta"))
-                        {
-                            var TrackerMatch = Regex.Match(proc.GetCommandLine(), @"\-b (\d+)");
-                            string TrackerID = TrackerMatch.Success ? TrackerMatch.Groups[1].Value : string.Empty;
+                AccountManager.Instance.CancelLaunching();
+                return "ERROR: " + (ticketResult.ErrorMessage ?? "Failed to obtain a Roblox authentication ticket.");
+            }
 
-                            if (TrackerID == BrowserTrackerID)
+            string Ticket = ticketResult.Ticket;
+
+            if (AccountManager.General.Get<bool>("AutoCloseLastProcess"))
+            {
+                try
+                {
+                    foreach (Process proc in Process.GetProcessesByName("RobloxPlayerBeta"))
+                    {
+                        var TrackerMatch = Regex.Match(proc.GetCommandLine(), @"\-b (\d+)");
+                        string TrackerID = TrackerMatch.Success ? TrackerMatch.Groups[1].Value : string.Empty;
+
+                        if (TrackerID == BrowserTrackerID)
+                        {
+                            try
                             {
-                                try // ignore ObjectDisposedExceptions
-                                {
-                                    proc.CloseMainWindow();
-                                    await Task.Delay(250);
-                                    proc.CloseMainWindow(); // Allows Roblox to disconnect from the server so we don't get the "Same account launched" error
-                                    await Task.Delay(250);
-                                    proc.Kill();
-                                }
-                                catch { }
+                                proc.CloseMainWindow();
+                                await Task.Delay(250);
+                                proc.CloseMainWindow();
+                                await Task.Delay(250);
+                                proc.Kill();
                             }
+                            catch { }
                         }
                     }
-                    catch (Exception x) { Program.Logger.Error($"An error occured attempting to close {Username}'s last process(es): {x}"); }
                 }
+                catch (Exception x) { Program.Logger.Error($"An error occured attempting to close {Username}'s last process(es): {x}"); }
+            }
 
-                string LinkCode = string.Empty;
-                string AccessCode = JoinVIP ? JobID : string.Empty;
-                if (!string.IsNullOrWhiteSpace(JobID))
+            string LinkCode = string.Empty;
+            string AccessCode = JoinVIP ? JobID : string.Empty;
+            if (!string.IsNullOrWhiteSpace(JobID))
+            {
+                Match linkCodeMatch = Regex.Match(JobID, @"(?:privateServerLinkCode|linkCode)=([^&#]+)", RegexOptions.IgnoreCase);
+                if (linkCodeMatch.Success) LinkCode = HttpUtility.UrlDecode(linkCodeMatch.Groups[1].Value);
+            }
+
+            if (!string.IsNullOrEmpty(LinkCode))
+            {
+                RestRequest request = MakeRequest(string.Format("/games/{0}?privateServerLinkCode={1}", PlaceID, HttpUtility.UrlEncode(LinkCode)), Method.Get).AddHeader("Referer", "https://www.roblox.com/");
+
+                RestResponse response = await AccountManager.MainClient.ExecuteAsync(request);
+
+                if (response.StatusCode == HttpStatusCode.OK)
                 {
-                    Match linkCodeMatch = Regex.Match(JobID, @"(?:privateServerLinkCode|linkCode)=([^&#]+)", RegexOptions.IgnoreCase);
-                    if (linkCodeMatch.Success) LinkCode = HttpUtility.UrlDecode(linkCodeMatch.Groups[1].Value);
-                }
-
-                if (!string.IsNullOrEmpty(LinkCode))
-                {
-                    RestRequest request = MakeRequest(string.Format("/games/{0}?privateServerLinkCode={1}", PlaceID, HttpUtility.UrlEncode(LinkCode)), Method.Get).AddHeader("Referer", "https://www.roblox.com/");
-
-                    RestResponse response = await AccountManager.MainClient.ExecuteAsync(request);
-
-                    if (response.StatusCode == HttpStatusCode.OK)
+                    if (ParseAccessCode(response, out string Code))
                     {
-                        if (ParseAccessCode(response, out string Code))
+                        JoinVIP = true;
+                        AccessCode = Code;
+                    }
+                }
+                else if (response.StatusCode == HttpStatusCode.Redirect)
+                {
+                    request = MakeRequest(string.Format("/games/{0}?privateServerLinkCode={1}", PlaceID, HttpUtility.UrlEncode(LinkCode)), Method.Get).AddHeader("Referer", "https://www.roblox.com/");
+
+                    RestResponse result = await AccountManager.Web13Client.ExecuteAsync(request);
+
+                    if (result.StatusCode == HttpStatusCode.OK)
+                    {
+                        if (ParseAccessCode(result, out string Code))
                         {
                             JoinVIP = true;
                             AccessCode = Code;
                         }
                     }
-                    else if (response.StatusCode == HttpStatusCode.Redirect) // thx wally (p.s. i hate wally)
-                    {
-                        request = MakeRequest(string.Format("/games/{0}?privateServerLinkCode={1}", PlaceID, HttpUtility.UrlEncode(LinkCode)), Method.Get).AddHeader("Referer", "https://www.roblox.com/");
-
-                        RestResponse result = await AccountManager.Web13Client.ExecuteAsync(request);
-
-                        if (result.StatusCode == HttpStatusCode.OK)
-                        {
-                            if (ParseAccessCode(result, out string Code))
-                            {
-                                JoinVIP = true;
-                                AccessCode = Code;
-                            }
-                        }
-                    }
                 }
+            }
 
-                if (JoinVIP)
+            if (JoinVIP)
+            {
+                if (GetCSRFToken(out string Token))
                 {
                     var request = MakeRequest("/account/settings/private-server-invite-privacy").AddHeader("X-CSRF-TOKEN", Token).AddHeader("Referer", "https://www.roblox.com/my/account");
 
@@ -652,34 +784,32 @@ namespace RBX_Alt_Manager
                         });
                     }
                 }
-
-                if (AccountManager.UseOldJoin)
-                    Program.Logger.Info("[LAUNCH] UseOldJoin is deprecated; using modern protocol launcher");
-
-                RobloxLaunchResult launchResult = await RobloxLaunchService.LaunchAsync(new RobloxLaunchRequest
-                {
-                    PlaceId = FollowUser ? 0 : PlaceID,
-                    TargetUserId = FollowUser ? (long?)PlaceID : null,
-                    JobId = JoinVIP ? string.Empty : JobID,
-                    PrivateServerAccessCode = JoinVIP ? AccessCode : string.Empty,
-                    LinkCode = LinkCode,
-                    AuthenticationTicket = Ticket,
-                    BrowserTrackerId = BrowserTrackerID,
-                    IsTeleport = AccountManager.IsTeleport
-                }).ConfigureAwait(false);
-
-                AccountManager.Instance.NextAccount();
-                if (!launchResult.Success)
-                {
-                    AccountManager.Instance.CancelLaunching();
-                    return "ERROR: " + launchResult.Error;
-                }
-
-                _ = AdjustWindowPosition();
-                return "Success";
             }
-            else
-                return "ERROR: Invalid Authentication Ticket, re-add the account or try again\n(Failed to get Authentication Ticket, Roblox has probably signed you out)";
+
+            if (AccountManager.UseOldJoin)
+                Program.Logger.Info("[LAUNCH] UseOldJoin is deprecated; using modern protocol launcher");
+
+            RobloxLaunchResult launchResult = await RobloxLaunchService.LaunchAsync(new RobloxLaunchRequest
+            {
+                PlaceId = FollowUser ? 0 : PlaceID,
+                TargetUserId = FollowUser ? (long?)PlaceID : null,
+                JobId = JoinVIP ? string.Empty : JobID,
+                PrivateServerAccessCode = JoinVIP ? AccessCode : string.Empty,
+                LinkCode = LinkCode,
+                AuthenticationTicket = Ticket,
+                BrowserTrackerId = BrowserTrackerID,
+                IsTeleport = AccountManager.IsTeleport
+            }).ConfigureAwait(false);
+
+            AccountManager.Instance.NextAccount();
+            if (!launchResult.Success)
+            {
+                AccountManager.Instance.CancelLaunching();
+                return "ERROR: " + launchResult.Error;
+            }
+
+            _ = AdjustWindowPosition();
+            return "Success";
         }
 
         public async Task AdjustWindowPosition()
@@ -844,5 +974,13 @@ namespace RBX_Alt_Manager
         public bool IsEmailVerified { get; set; }
         public int AgeBracket { get; set; }
         public bool UserAbove13 { get; set; }
+    }
+
+    public class AuthTicketResult
+    {
+        public bool Success { get; set; }
+        public string Ticket { get; set; }
+        public string ErrorMessage { get; set; }
+        public HttpStatusCode StatusCode { get; set; }
     }
 }
