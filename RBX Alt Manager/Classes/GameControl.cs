@@ -1,5 +1,6 @@
-﻿using RestSharp;
+using RestSharp;
 using System;
+using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -16,6 +17,12 @@ namespace RBX_Alt_Manager.Classes
         {
             InitializeComponent();
             GameName.Rescale();
+
+            BackColor = ModernUi.CardBackground;
+            ForeColor = ModernUi.TextPrimary;
+            GameName.ForeColor = ModernUi.TextPrimary;
+            GameName.BackColor = Color.Transparent;
+            GameImage.BackColor = Color.Transparent;
 
             Game = game;
 

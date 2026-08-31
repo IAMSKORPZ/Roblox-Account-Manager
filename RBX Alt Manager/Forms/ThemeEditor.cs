@@ -1,4 +1,4 @@
-﻿using FastColoredTextBoxNS;
+using FastColoredTextBoxNS;
 using System;
 using System.Drawing;
 using System.IO;
@@ -9,29 +9,28 @@ namespace RBX_Alt_Manager.Forms
 {
     public partial class ThemeEditor : Form
     {
-        public static Color AccountBackground = SystemColors.Control;
-        public static Color AccountForeground = SystemColors.ControlText;
+        public static Color AccountBackground = Color.FromArgb(17, 23, 37);
+        public static Color AccountForeground = Color.FromArgb(244, 246, 251);
 
-        public static Color ButtonsBackground = SystemColors.Control;
-        public static Color ButtonsForeground = SystemColors.ControlText;
-        public static Color ButtonsBorder = SystemColors.Control;
-        public static FlatStyle ButtonStyle = FlatStyle.Standard;
+        public static Color ButtonsBackground = Color.FromArgb(21, 28, 43);
+        public static Color ButtonsForeground = Color.FromArgb(244, 246, 251);
+        public static Color ButtonsBorder = Color.FromArgb(42, 50, 68);
+        public static FlatStyle ButtonStyle = FlatStyle.Flat;
 
-        public static Color FormsBackground = SystemColors.Control;
-        public static Color FormsForeground = SystemColors.ControlText;
+        public static Color FormsBackground = Color.FromArgb(11, 15, 26);
+        public static Color FormsForeground = Color.FromArgb(244, 246, 251);
         public static bool UseDarkTopBar = true;
         public static bool ShowHeaders = true;
 
-        public static Color TextBoxesBackground = SystemColors.Control;
-        public static Color TextBoxesForeground = SystemColors.ControlText;
-        public static Color TextBoxesBorder = Color.FromArgb(0x7A7A7A);
+        public static Color TextBoxesBackground = Color.FromArgb(21, 28, 43);
+        public static Color TextBoxesForeground = Color.FromArgb(244, 246, 251);
+        public static Color TextBoxesBorder = Color.FromArgb(42, 50, 68);
 
-        public static Color LabelBackground = SystemColors.Control;
-        public static Color LabelForeground = SystemColors.ControlText;
+        public static Color LabelBackground = Color.Transparent;
+        public static Color LabelForeground = Color.FromArgb(168, 176, 194);
         public static bool LabelTransparent = true;
         
         public static bool LightImages = false;
-        // public static bool UseNormalTabControls = false;
 
         public static string ToHexString(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 

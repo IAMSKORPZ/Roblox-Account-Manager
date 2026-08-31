@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
+using RBX_Alt_Manager.Classes;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -19,6 +20,7 @@ namespace RBX_Alt_Manager.Forms
 
             InitializeComponent();
             this.Rescale();
+            InitializeModernLayout();
         }
 
         private void SettingsForm_Load(object sender, EventArgs e)
@@ -353,14 +355,9 @@ namespace RBX_Alt_Manager.Forms
             AccountManager.IniSettings.Save("RAMSettings.ini");
         }
 
-        private void ForceUpdateButton_Click(object sender, EventArgs e)
+        private async void ForceUpdateButton_Click(object sender, EventArgs e)
         {
-            if (!Utilities.YesNoPrompt("Auto Update", "Are you sure you want to update?", "", false)) return;
-
-            string AFN = Path.Combine(Directory.GetCurrentDirectory(), "Auto Update.exe");
-            File.WriteAllBytes(AFN, File.ReadAllBytes(Application.ExecutablePath));
-            Process.Start(AFN, "-update");
-            Environment.Exit(1);
+            await AutoUpdaterClient.CheckForUpdatesAsync(isManualCheck: true, owner: this);
         }
 
         #endregion
@@ -373,6 +370,7 @@ namespace RBX_Alt_Manager.Forms
             ForeColor = ThemeEditor.FormsForeground;
 
             ApplyTheme(Controls);
+            ModernUi.Apply(this);
         }
 
         public void ApplyTheme(Control.ControlCollection _Controls)

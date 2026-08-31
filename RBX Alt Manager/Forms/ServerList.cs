@@ -1,4 +1,4 @@
-﻿#pragma warning disable CS4014
+#pragma warning disable CS4014
 
 using BrightIdeasSoftware;
 using Newtonsoft.Json;
@@ -59,6 +59,8 @@ namespace RBX_Alt_Manager
 
             ScanIntervalN.Value = AccountManager.Watcher.Exists("ScanInterval") ? AccountManager.Watcher.Get<int>("ScanInterval") : 6;
             ReadIntervalN.Value = AccountManager.Watcher.Exists("ReadInterval") ? AccountManager.Watcher.Get<int>("ReadInterval") : 250;
+
+            InitializeModernLayout();
         }
 
         #region Themes
@@ -69,7 +71,7 @@ namespace RBX_Alt_Manager
             ForeColor = ThemeEditor.FormsForeground;
 
             ApplyTheme(Controls);
-            //ApplyTheme(Tabs.TabPages);
+            ModernUi.Apply(this);
         }
 
         public void ApplyTheme(Control.ControlCollection _Controls)

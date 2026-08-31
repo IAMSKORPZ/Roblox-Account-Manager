@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\CefSharp.Common.109.1.110\build\CefSharp.Common.props" Condition="Exists('..\packages\CefSharp.Common.109.1.110\build\CefSharp.Common.props')" />
   <Import Project="..\packages\cef.redist.x86.109.1.11\build\cef.redist.x86.props" Condition="Exists('..\packages\cef.redist.x86.109.1.11\build\cef.redist.x86.props')" />
@@ -405,6 +405,8 @@
     <Compile Include="Classes\RobloxLaunchService.cs" />
     <Compile Include="Classes\RobloxMultiInstanceManager.cs" />
     <Compile Include="Classes\RobloxWatcher.cs" />
+    <Compile Include="Classes\AutoUpdaterClient.cs" />
+    <Compile Include="Classes\ModernUi.cs" />
     <Compile Include="Classes\Utilities.cs" />
     <Compile Include="Classes\WM.cs" />
     <None Include="DO NOT UPGRADE CEFSHARP - BREAKS FOR WIN7.note" />
@@ -422,6 +424,9 @@
     </Compile>
     <Compile Include="Forms\SettingsForm.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\SettingsForm.Modern.cs">
+      <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\SettingsForm.Designer.cs">
       <DependentUpon>SettingsForm.cs</DependentUpon>
@@ -460,6 +465,9 @@
     </Compile>
     <Compile Include="AccountManager.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AccountManager.Modern.cs">
+      <DependentUpon>AccountManager.cs</DependentUpon>
     </Compile>
     <Compile Include="AccountManager.Designer.cs">
       <DependentUpon>AccountManager.cs</DependentUpon>
@@ -502,6 +510,9 @@
     <Compile Include="Classes\Server.cs" />
     <Compile Include="Forms\ServerList.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\ServerList.Modern.cs">
+      <DependentUpon>ServerList.cs</DependentUpon>
     </Compile>
     <Compile Include="Forms\ServerList.Designer.cs">
       <DependentUpon>ServerList.cs</DependentUpon>

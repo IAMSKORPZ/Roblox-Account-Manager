@@ -1,10 +1,10 @@
 [![Download](https://img.shields.io/github/v/release/IAMSKORPZ/Roblox-Account-Manager)](https://github.com/IAMSKORPZ/Roblox-Account-Manager/releases/latest)
 [![Latest Downloads](https://img.shields.io/github/downloads/IAMSKORPZ/Roblox-Account-Manager/latest/total)](https://github.com/IAMSKORPZ/Roblox-Account-Manager/releases)
-[![Discord](https://img.shields.io/discord/871845273800957982?label=Discord)](https://discord.gg/MsEH7smXY8)
+[![Discord](https://img.shields.io/discord/871845273800957982?label=Discord)](https://discord.gg/eAmh5NZrzz)
 ![License](https://img.shields.io/github/license/ic3w0lf22/Roblox-Account-Manager)
 
 <!-- BEGIN LATEST DOWNLOAD BUTTON -->
-[![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download")](https://github.com/IAMSKORPZ/Roblox-Account-Manager/releases/download/3.8.1/Roblox.Account.Manager.3.8.1.zip)
+[![Download zip](https://custom-icon-badges.herokuapp.com/badge/-Download-blue?style=for-the-badge&logo=download&logoColor=white "Download")](https://github.com/IAMSKORPZ/Roblox-Account-Manager/releases/download/3.9.0/Roblox.Account.Manager.3.9.0.zip)
 <!-- END LATEST DOWNLOAD BUTTON -->
 
 [Click here to view Roblox Account Manager features](https://github.com/ic3w0lf22/Roblox-Account-Manager/blob/master/README.md#features)
@@ -18,7 +18,7 @@ You are welcome to edit the code and create pull requests if it'll benefit this 
 
 Multiple Roblox Instances is built into the account manager but [must be manually enabled](https://github.com/ic3w0lf22/Roblox-Account-Manager/blob/master/README.md#q-how-do-i-enable-multi-roblox).
 
-Report bugs to the issues section or direct message me via discord @ ic3#0001 or join the discord: https://discord.gg/MsEH7smXY8
+Report bugs to the issues section or direct message me via discord @ ic3#0001 or join the discord: https://discord.gg/eAmh5NZrzz
 
 # WARNING
 If someone asks you to generate an "rbx-player link", **DO NOT** do it, they can use these to join any game using your account, or even launch roblox studio with one of your games. They can do many things in game such as spend your robux or even do things that can get your account terminated. **USE THESE FEATURES AT YOUR OWN RISK**

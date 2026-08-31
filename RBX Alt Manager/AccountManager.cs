@@ -165,6 +165,7 @@ namespace RBX_Alt_Manager
 
             InitializeComponent();
             this.Rescale();
+            InitializeModernLayout();
 
             AccountsList = new List<Account>();
             SelectedAccounts = new List<Account>();
@@ -691,54 +692,9 @@ namespace RBX_Alt_Manager
 
             if (General.Get<bool>("CheckForUpdates"))
             {
-                Task.Run(() =>
+                Task.Run(async () =>
                 {
-                    try
-                    {
-                        ServicePointManager.Expect100Continue = true;
-                        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12 | SecurityProtocolType.Ssl3;
-
-                        WebClient WC = new WebClient();
-                        Assembly assembly = Assembly.GetExecutingAssembly();
-                        FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-                        WC.Headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36";
-                        string Releases = WC.DownloadString("https://api.github.com/repos/IAMSKORPZ/Roblox-Account-Manager/releases/latest");
-                        Match match = Regex.Match(Releases, @"""tag_name"":\s*""?([^""]+)");
-
-                        if (match.Success)
-                        {
-                            string Current = fvi.FileVersion.TrimEnd('.', '0').Replace(".", string.Empty);
-                            string New = match.Groups[1].Value.TrimEnd('.', '0').Replace(".", string.Empty);
-
-                            if (Current.Length > New.Length)
-                                New = New.PadRight(Current.Length, '0');
-                            else if (New.Length > Current.Length)
-                                Current = Current.PadRight(New.Length, '0');
-
-                            if (double.TryParse(New, out double NV) && double.TryParse(Current, out double CV) && NV > CV)
-                            {
-                                bool ShouldUpdate = Utilities.YesNoPrompt("Roblox Account Manager", "An update is available", "Would you like to update now?");
-
-                                if (ShouldUpdate)
-                                {
-                                    File.WriteAllBytes(AFN, File.ReadAllBytes(Application.ExecutablePath));
-                                    Process.Start(AFN, "-update");
-                                    Environment.Exit(1);
-                                    //if (File.Exists(AFN))
-                                    //{
-                                    //    Process.Start(AFN, "skip");
-                                    //    Environment.Exit(1);
-                                    //}
-                                    //else
-                                    //{
-                                    //    MessageBox.Show("You do not have the auto updater downloaded, go to the github page and download the latest release.");
-                                    //    Process.Start("https://github.com/IAMSKORPZ/Roblox-Account-Manager/releases");
-                                    //}
-                                }
-                            }
-                        }
-                    }
-                    catch { }
+                    await AutoUpdaterClient.CheckForUpdatesAsync(isManualCheck: false, owner: this);
                 });
             }
 
@@ -765,7 +721,6 @@ namespace RBX_Alt_Manager
                                 }
                                 catch { }
 
-
                     AltManagerWS = new WebServer(SendResponse, Prefixes.ToArray());
                     AltManagerWS.Run();
                 }
@@ -774,11 +729,15 @@ namespace RBX_Alt_Manager
 
             Task.Run(() =>
             {
-                WebClient WC = new WebClient();
-                string VersionJSON = WC.DownloadString("https://clientsettings.roblox.com/v1/client-version/WindowsPlayer");
+                try
+                {
+                    WebClient WC = new WebClient();
+                    string VersionJSON = WC.DownloadString("https://clientsettings.roblox.com/v1/client-version/WindowsPlayer");
 
-                if (JObject.Parse(VersionJSON).TryGetValue("clientVersionUpload", out JToken token))
-                    CurrentVersion = token.Value<string>();
+                    if (JObject.Parse(VersionJSON).TryGetValue("clientVersionUpload", out JToken token))
+                        CurrentVersion = token.Value<string>();
+                }
+                catch { }
             });
 
             IniSettings.Save("RAMSettings.ini");
@@ -789,7 +748,6 @@ namespace RBX_Alt_Manager
 
             Task.Run(LoadRecentGames);
             Task.Run(RobloxProcess.UpdateMatches);
-
             if (General.Get<bool>("ShuffleJobId"))
                 ShuffleIcon_Click(null, EventArgs.Empty);
 
@@ -837,6 +795,8 @@ namespace RBX_Alt_Manager
             AccountsView.CellEditActivation = ObjectListView.CellEditActivateMode.DoubleClick;
 
             Controls.ApplyTheme();
+            ModernUi.Apply(this);
+            RefreshModernCardStyling();
 
             afform.ApplyTheme();
             ServerListForm.ApplyTheme();
@@ -846,8 +806,18 @@ namespace RBX_Alt_Manager
             ThemeForm.ApplyTheme();
             RGForm.ApplyTheme();
 
+            ModernUi.Apply(afform);
+            ModernUi.Apply(ServerListForm);
+            ModernUi.Apply(UtilsForm);
+            ModernUi.Apply(ImportAccountsForm);
+            ModernUi.Apply(FieldsForm);
+            ModernUi.Apply(ThemeForm);
+            ModernUi.Apply(RGForm);
+
             ControlForm?.ApplyTheme();
             SettingsForm?.ApplyTheme();
+            if (ControlForm != null) ModernUi.Apply(ControlForm);
+            if (SettingsForm != null) ModernUi.Apply(SettingsForm);
         }
 
         private async void LoadRecentGames()
@@ -1750,7 +1720,7 @@ namespace RBX_Alt_Manager
             }
         }
 
-        private void JoinDiscord_Click(object sender, EventArgs e) => Process.Start("https://discord.gg/MsEH7smXY8");
+        private void JoinDiscord_Click(object sender, EventArgs e) => Process.Start("https://discord.gg/eAmh5NZrzz");
 
         private void OpenBrowser_Click(object sender, EventArgs e)
         {
@@ -2025,7 +1995,7 @@ namespace RBX_Alt_Manager
             MessageBox.Show("Groups can be sorted by naming them a number then whatever you want.\nFor example: You can put Group Apple on top by naming it '001 Apple' or '1Apple'.\nThe numbers will be hidden from the name but will be correctly sorted depending on the number.\nAccounts can also be dragged into groups.", "Roblox Account Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
         private void DonateButton_Click(object sender, EventArgs e) =>
-            Process.Start("https://ic3w0lf22.github.io/donate.html");
+            MessageBox.Show("PayPal donations are coming soon.", "Roblox Account Manager", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
         private void ConfigButton_Click(object sender, EventArgs e)
         {

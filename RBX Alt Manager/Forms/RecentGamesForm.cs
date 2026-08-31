@@ -1,4 +1,4 @@
-﻿using RBX_Alt_Manager.Classes;
+using RBX_Alt_Manager.Classes;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -14,6 +14,10 @@ namespace RBX_Alt_Manager.Forms
         {
             InitializeComponent();
             this.Rescale();
+
+            BackColor = ModernUi.CardBackground;
+            ForeColor = ModernUi.TextPrimary;
+            GamesPanel.BackColor = ModernUi.CardBackground;
 
             AccountManager.Instance.RecentGameAdded += Instance_RecentGameAdded;
         }
@@ -75,8 +79,9 @@ namespace RBX_Alt_Manager.Forms
 
         public void ApplyTheme()
         {
-            BackColor = ThemeEditor.FormsBackground.DarkenOrBrighten(0.12f);
-            ForeColor = ThemeEditor.FormsForeground;
+            BackColor = ModernUi.CardBackground;
+            ForeColor = ModernUi.TextPrimary;
+            GamesPanel.BackColor = ModernUi.CardBackground;
 
             ApplyTheme(Controls);
         }
@@ -134,7 +139,10 @@ namespace RBX_Alt_Manager.Forms
                 else if (control is FastColoredTextBoxNS.FastColoredTextBox)
                     control.ForeColor = Color.Black;
                 else if (control is FlowLayoutPanel || control is Panel || control is TabControl)
+                {
+                    control.BackColor = ModernUi.CardBackground;
                     ApplyTheme(control.Controls);
+                }
             }
         }
 

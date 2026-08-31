@@ -332,3 +332,19 @@ __pycache__/
 *.xsd.cs
 
 # OpenCover UI anal
+
+# RAM user data & staging
+AccountData*.json
+AccountData*.bak
+AccountData*.backup
+RAMSettings.ini
+RAMTheme.ini
+RecentGames.json
+Developer.json
+staging/
+dist/
+/Auto Update.exe
+/libsodium.dll
+/log4.config
+test_install/
+*.ps1
