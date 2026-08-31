@@ -166,6 +166,7 @@ namespace RBX_Alt_Manager
             try
             {
                 var request = MakeRequest("v1/authentication-ticket/", Method.Post)
+                    .AddHeader("Content-Type", "application/json")
                     .AddHeader("Origin", "https://www.roblox.com")
                     .AddHeader("Referer", "https://www.roblox.com/games/606849621/Jailbreak")
                     .AddHeader("RBXAuthenticationNegotiation", "1");
@@ -188,6 +189,7 @@ namespace RBX_Alt_Manager
                     if (!string.IsNullOrWhiteSpace(CSRFToken))
                     {
                         var retryRequest = MakeRequest("v1/authentication-ticket/", Method.Post)
+                            .AddHeader("Content-Type", "application/json")
                             .AddHeader("Origin", "https://www.roblox.com")
                             .AddHeader("Referer", "https://www.roblox.com/games/606849621/Jailbreak")
                             .AddHeader("RBXAuthenticationNegotiation", "1")
@@ -230,7 +232,11 @@ namespace RBX_Alt_Manager
                 }
 
                 string errorMsg;
-                switch (response.StatusCode)
+                if ((int)response.StatusCode >= 500 && (int)response.StatusCode <= 599)
+                {
+                    errorMsg = "Roblox authentication services are temporarily unavailable. Please try again later.";
+                }
+                else switch (response.StatusCode)
                 {
                     case HttpStatusCode.Unauthorized:
                         errorMsg = "Your Roblox session has expired. Please re-add or refresh this account.";
@@ -290,6 +296,7 @@ namespace RBX_Alt_Manager
             }
 
             var request = MakeRequest("v1/authentication-ticket/", Method.Post)
+                .AddHeader("Content-Type", "application/json")
                 .AddHeader("Origin", "https://www.roblox.com")
                 .AddHeader("Referer", "https://www.roblox.com/games/606849621/Jailbreak")
                 .AddHeader("RBXAuthenticationNegotiation", "1");
