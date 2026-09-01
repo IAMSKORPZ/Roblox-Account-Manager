@@ -26,6 +26,7 @@ namespace RBX_Alt_Manager.Classes
         public static readonly Font SectionTitleFont = new Font("Segoe UI Semibold", 11F, FontStyle.Bold, GraphicsUnit.Point);
 
         private static readonly ConditionalWeakTable<Button, object> StyledButtons = new ConditionalWeakTable<Button, object>();
+        private static readonly ConditionalWeakTable<CheckBox, object> StyledCheckBoxes = new ConditionalWeakTable<CheckBox, object>();
 
         public static void Apply(Form form)
         {
@@ -81,7 +82,15 @@ namespace RBX_Alt_Manager.Classes
                     checkBox.FlatStyle = FlatStyle.Flat;
                     checkBox.FlatAppearance.BorderSize = 1;
                     checkBox.FlatAppearance.BorderColor = BorderSubtle;
-                    checkBox.ForeColor = TextPrimary;
+                    checkBox.FlatAppearance.CheckedBackColor = AccentPurple;
+                    checkBox.FlatAppearance.MouseOverBackColor = CardBackgroundSecondary;
+                    checkBox.UseVisualStyleBackColor = false;
+                    ApplyCheckBoxState(checkBox);
+                    if (!StyledCheckBoxes.TryGetValue(checkBox, out _))
+                    {
+                        StyledCheckBoxes.Add(checkBox, new object());
+                        checkBox.CheckedChanged += (sender, args) => ApplyCheckBoxState(checkBox);
+                    }
                 }
                 else if (control is ComboBox comboBox)
                 {
@@ -133,6 +142,12 @@ namespace RBX_Alt_Manager.Classes
 
                 if (control.HasChildren) Apply(control.Controls);
             }
+        }
+
+        private static void ApplyCheckBoxState(CheckBox checkBox)
+        {
+            checkBox.BackColor = checkBox.Checked ? AccentPurpleDown : Color.Transparent;
+            checkBox.ForeColor = checkBox.Checked ? Color.White : TextPrimary;
         }
 
         public static Panel CreateCardPanel(Padding? padding = null)
